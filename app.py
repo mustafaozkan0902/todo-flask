@@ -1,51 +1,51 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # React'ten erişim için
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Task modeli
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    status = db.Column(db.String(50), default="yeni")  # yeni, onay, tamamlandı
+    status = db.Column(db.String(50), default="onay_bekliyor")  # onay_bekliyor, devam, tamamlandı
 
-# Ana sayfa
-@app.route("/")
-def index():
+db.create_all()
+
+# Tüm görevleri al
+@app.route("/api/tasks", methods=["GET"])
+def get_tasks():
     tasks = Task.query.all()
-    return render_template("index.html", tasks=tasks)
+    return jsonify([{"id": t.id, "title": t.title, "status": t.status} for t in tasks])
 
-# Yeni görev ekleme
-@app.route("/add", methods=["POST"])
+# Yeni görev ekle
+@app.route("/api/tasks", methods=["POST"])
 def add_task():
-    title = request.form.get("title")
-    if title:
-        task = Task(title=title)
-        db.session.add(task)
-        db.session.commit()
-    return redirect(url_for("index"))
+    data = request.json
+    task = Task(title=data["title"], status=data.get("status", "onay_bekliyor"))
+    db.session.add(task)
+    db.session.commit()
+    return jsonify({"id": task.id, "title": task.title, "status": task.status})
 
-# Görev durumu güncelleme
-@app.route("/update/<int:id>", methods=["POST"])
+# Görev güncelle
+@app.route("/api/tasks/<int:id>", methods=["PUT"])
 def update_task(id):
     task = Task.query.get_or_404(id)
-    status = request.form.get("status")
-    if status:
-        task.status = status
-        db.session.commit()
-    return redirect(url_for("index"))
+    data = request.json
+    task.status = data.get("status", task.status)
+    db.session.commit()
+    return jsonify({"id": task.id, "title": task.title, "status": task.status})
 
-# Görev silme
-@app.route("/delete/<int:id>", methods=["POST"])
+# Görev sil
+@app.route("/api/tasks/<int:id>", methods=["DELETE"])
 def delete_task(id):
     task = Task.query.get_or_404(id)
     db.session.delete(task)
     db.session.commit()
-    return redirect(url_for("index"))
+    return jsonify({"message": "Deleted"})
 
 if __name__ == "__main__":
-    db.create_all()
     app.run(debug=True)
