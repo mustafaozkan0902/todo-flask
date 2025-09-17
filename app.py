@@ -77,3 +77,10 @@ def update_task(id):
         return jsonify({"message": "Task updated"})
     return jsonify({"message": "Task not found"}), 404
 
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+
+
+
