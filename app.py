@@ -51,3 +51,29 @@ def init_db():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+from flask import jsonify, request
+
+@app.route("/api/tasks", methods=["GET"])
+def get_tasks():
+    tasks = Task.query.all()
+    return jsonify([{"id": t.id, "title": t.title, "status": t.status} for t in tasks])
+
+@app.route("/api/tasks", methods=["POST"])
+def add_task():
+    data = request.get_json()
+    new_task = Task(title=data["title"], status="yeni")
+    db.session.add(new_task)
+    db.session.commit()
+    return jsonify({"message": "Task added"}), 201
+
+@app.route("/api/tasks/<int:id>", methods=["PUT"])
+def update_task(id):
+    data = request.get_json()
+    task = Task.query.get(id)
+    if task:
+        task.status = data.get("status", task.status)
+        db.session.commit()
+        return jsonify({"message": "Task updated"})
+    return jsonify({"message": "Task not found"}), 404
+
