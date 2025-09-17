@@ -83,4 +83,16 @@ app = Flask(__name__)
 CORS(app)
 
 
+from flask import Flask, render_template, request, redirect, url_for
+from models import db, Task  # db ve Task zaten mevcut olduğunu varsayıyorum
+
+@app.route("/delete/<int:id>", methods=["POST"])
+def delete_task(id):
+    task = Task.query.get_or_404(id)
+    db.session.delete(task)
+    db.session.commit()
+    return redirect(url_for("index"))
+
+
+
 
